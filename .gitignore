@@ -1,0 +1,11 @@
+﻿.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.zip
+*.pptx
+*.csv
+.DS_Store
+.vscode/
+.idea/

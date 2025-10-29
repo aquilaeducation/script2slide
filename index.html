@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Flexpert's Script2Slide</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <style>
+      :root { --gap: 12px; }
+      * { box-sizing: border-box; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 24px; color:#111; }
+      h1 { font-size: 1.6rem; margin: 0 0 16px; }
+      form { display: grid; grid-template-columns: 1fr; gap: var(--gap); }
+      .row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap); }
+      @media (max-width: 900px){ .row{ grid-template-columns: 1fr 1fr; } }
+      @media (max-width: 520px){ .row{ grid-template-columns: 1fr; } }
+      label { display: block; font-weight: 600; margin-bottom: 6px; }
+      input[type="text"], select, input[type="color"], textarea {
+        width: 100%; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 8px; background: #fff; font: inherit;
+      }
+      textarea { min-height: 360px; }
+      .btns { display:flex; gap: var(--gap); flex-wrap: wrap; margin-top: 6px; }
+      button {
+        padding: 10px 14px; border: 1px solid #d0d7de; background: #111; color:#fff;
+        border-radius: 8px; cursor:pointer;
+      }
+      button.secondary { background:#fff; color:#111; }
+      button:hover { opacity: .96; }
+      small.hint { color:#555; display:block; margin-top:4px; }
+      .remember { display:flex; align-items:center; gap:8px; margin-top: -4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Flexpert's Script2Slide</h1>
+
+    <form method="post" action="/export" enctype="multipart/form-data" id="export-form">
+      <div class="row">
+        <div>
+          <label for="filename">File name</label>
+          <input id="filename" name="filename" type="text" placeholder="e.g., Digital-Collab" />
+          <small class="hint">We’ll add the right extension automatically.</small>
+        </div>
+
+        <div>
+          <label for="font_name">Font</label>
+          <select id="font_name" name="font_name">
+            <option value="Calibri" selected>Calibri</option>
+            <option value="Arial">Arial</option>
+            <option value="Helvetica">Helvetica</option>
+            <option value="Verdana">Verdana</option>
+            <option value="Tahoma">Tahoma</option>
+            <option value="Times New Roman">Times New Roman</option>
+            <option value="Georgia">Georgia</option>
+            <option value="Montserrat">Montserrat</option>
+            <option value="Open Sans">Open Sans</option>
+            <option value="Roboto">Roboto</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="font_color">Font color</label>
+          <input id="font_color" name="font_color" type="color" value="#111111" />
+        </div>
+
+        <div>
+          <label for="bg_color">Background color</label>
+          <input id="bg_color" name="bg_color" type="color" value="#FFFFFF" />
+          <small class="hint">Applied to all slides.</small>
+        </div>
+      </div>
+
+      <div class="remember">
+        <input type="checkbox" id="remember_settings" />
+        <label for="remember_settings" style="margin:0;font-weight:500;">Remember these settings</label>
+      </div>
+
+      <div>
+        <label for="script">Script</label>
+        <textarea id="script" name="script" placeholder="Paste your script here..."></textarea>
+      </div>
+
+      <div class="btns">
+        <button type="submit" name="format" value="pptx">Export PPTX</button>
+        <button type="submit" name="format" value="csv" class="secondary">Export Quiz CSV</button>
+        <button type="submit" name="format" value="zip" class="secondary">Export All</button>
+      </div>
+    </form>
+
+    <script>
+      const FIELDS = ["filename","font_name","font_color","bg_color"];
+      const LS_KEY = "script2slide.settings";
+
+      function saveSettings(){
+        const data = {};
+        FIELDS.forEach(id => data[id] = document.getElementById(id).value);
+        localStorage.setItem(LS_KEY, JSON.stringify(data));
+      }
+      function loadSettings(){
+        try{
+          const raw = localStorage.getItem(LS_KEY);
+          if(!raw) return;
+          const data = JSON.parse(raw);
+          FIELDS.forEach(id => {
+            if(data[id] != null) document.getElementById(id).value = data[id];
+          });
+          document.getElementById("remember_settings").checked = true;
+        }catch(e){}
+      }
+
+      document.getElementById("remember_settings").addEventListener("change", (e)=>{
+        if(e.target.checked){ saveSettings(); }
+        else { localStorage.removeItem(LS_KEY); }
+      });
+      FIELDS.forEach(id => {
+        document.getElementById(id).addEventListener("change", ()=>{
+          if(document.getElementById("remember_settings").checked) saveSettings();
+        });
+      });
+      loadSettings();
+    </script>
+  </body>
+</html>
