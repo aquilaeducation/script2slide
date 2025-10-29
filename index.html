@@ -39,7 +39,15 @@
           <input id="filename" name="filename" type="text" placeholder="e.g., Digital-Collab" />
           <small class="hint">We’ll add the right extension automatically.</small>
         </div>
+ <div>
+    <label for="upload">Upload Script (CSV or Excel)</label>
+    <input id="upload" name="upload" type="file" accept=".csv,.xlsx,.xls,.tsv" />
+    <small class="hint">Format: 3 columns → Title | Text/Bullets | Narration. First row can be headers.</small>
+  </div>
 
+  <div style="text-align:center; margin:8px 0;">
+    <b>— or paste plain text below —</b>
+  </div>
         <div>
           <label for="font_name">Font</label>
           <select id="font_name" name="font_name">
@@ -74,8 +82,8 @@
       </div>
 
       <div>
-        <label for="script">Script</label>
-        <textarea id="script" name="script" placeholder="Paste your script here..."></textarea>
+       <label for="script">Script</label>
+    <textarea id="script" name="script" placeholder="Paste your script here..."></textarea>
       </div>
 
       <div class="btns">
