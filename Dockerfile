@@ -9,5 +9,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
+# Informational on Render; Render will still inject $PORT
 EXPOSE 8080
-CMD ["bash", "-lc", "gunicorn -w 2 -b 0.0.0.0:$PORT app:app"]
+
+# Start Gunicorn bound to $PORT from the host
+CMD ["python", "-m", "gunicorn", "-w", "2", "-b", "0.0.0.0:$PORT", "--access-logfile", "-", "--timeout", "60", "app:app"]
