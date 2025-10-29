@@ -2,15 +2,16 @@ import re
 
 # Section headers
 SLIDE_RE = re.compile(r"^##\s*Slide:\s*(.+)$", re.I)
+# Keep the same authoring header, but we'll emit legacy "quiz" blocks:
 QUIZ_SINGLE_RE = re.compile(r"^##\s*Quiz:\s*Single\s*Choice\s*$", re.I)
 
 # Generic "Field: value" matcher
 FIELD_RE = re.compile(r"^(\w+):\s*(.*)$")
 
+
 def parse_script(text: str):
     """
     Parse authoring text into a list of normalized blocks.
-    Supported structures:
 
     Slide
     -----
@@ -28,39 +29,41 @@ def parse_script(text: str):
     You may also omit "Text:" and just write freeform lines under the slide;
     they'll be captured as body text.
 
-    Quiz (Single Choice)
-    --------------------
+    Quiz (Multiple answers allowed)
+    --------------------------------
     ## Quiz: Single Choice
-    Title: Optional quiz title (captured, currently informational)
+    Title: Optional quiz title
     Question: Which option is best?
     A: Answer A
     B: Answer B
     C: Answer C
     D: Answer D
-    Correct: C
+    Answer: C        # single answer
+    # or:
+    Answer: A,C      # multiple answers allowed (select all that apply)
     FeedbackCorrect: Nice job!
     FeedbackIncorrect: Give it another look.
 
-    Returns a list of blocks where each block is a dict. Slide dict shape:
+    Returns a list of blocks. Slide dict shape:
       {
         "type": "slide",
         "title": str,
-        "text": [str, ...],         # on-screen paragraphs
+        "text": [str, ...],
         "bullets": [str, ...],
-        "narration": str,           # notes pane text
+        "narration": str,
         "image": str,
         "alt": str
       }
 
-    Quiz (single choice) dict shape:
+    Quiz dict shape (legacy form that downstream exporters already support):
       {
-        "type": "quiz_single",
-        "title": str,               # optional, informational
+        "type": "quiz",
+        "title": str,
         "question": str,
-        "choices": [A, B, C, D],
-        "correctIndex": int,        # 0..3
-        "feedbackCorrect": str,
-        "feedbackIncorrect": str
+        "A": str, "B": str, "C": str, "D": str,
+        "answer": "C" or "A,C",   # single or multiple
+        "feedback_correct": str,
+        "feedback_incorrect": str
       }
     """
     # Normalize line endings and strip trailing spaces; keep empty lines
@@ -147,14 +150,18 @@ def parse_script(text: str):
         if m_quiz_s:
             if current:
                 blocks.append(current)
+            # Emit legacy 'quiz' block (A-D + 'answer' which may be multiple letters)
             current = {
-                "type": "quiz_single",
+                "type": "quiz",
                 "title": "",
                 "question": "",
-                "choices": [],
-                "correctIndex": None,
-                "feedbackCorrect": "",
-                "feedbackIncorrect": "",
+                "A": "",
+                "B": "",
+                "C": "",
+                "D": "",
+                "answer": "",  # e.g., "C" or "A,C"
+                "feedback_correct": "",
+                "feedback_incorrect": "",
             }
             i += 1
             continue
@@ -197,22 +204,21 @@ def parse_script(text: str):
                         current["alt"] = val
 
                 else:
-                    # quiz_single fields
+                    # quiz (legacy shape)
                     if key == "title":
                         current["title"] = val
                     elif key == "question":
                         current["question"] = val
                     elif key in ("a", "b", "c", "d"):
-                        idx = {"a": 0, "b": 1, "c": 2, "d": 3}[key]
-                        while len(current["choices"]) <= idx:
-                            current["choices"].append("")
-                        current["choices"][idx] = val
+                        # store directly into A/B/C/D
+                        current[key.upper()] = val
                     elif key in ("correct", "answer"):
-                        current["correctIndex"] = {"a": 0, "b": 1, "c": 2, "d": 3}.get(val.lower(), None)
+                        # allow single or multiple letters like "C" or "A,C"
+                        current["answer"] = val.replace(" ", "").upper()
                     elif key == "feedbackcorrect":
-                        current["feedbackCorrect"] = val
+                        current["feedback_correct"] = val
                     elif key == "feedbackincorrect":
-                        current["feedbackIncorrect"] = val
+                        current["feedback_incorrect"] = val
 
             else:
                 # Freeform lines in a slide become body text (if not labeled)
@@ -238,18 +244,5 @@ def parse_script(text: str):
             b["narration"] = (b.get("narration") or "").strip()
             b["image"] = b.get("image") or ""
             b["alt"] = b.get("alt") or ""
-        elif b.get("type") == "quiz_single":
-            # Ensure exactly 4 choices if any were provided
-            if b.get("choices"):
-                while len(b["choices"]) < 4:
-                    b["choices"].append("")
-            if b.get("correctIndex") is None and b.get("choices"):
-                # Try to infer correct index from a leading '*' marker, e.g. "*Choice"
-                for idx, choice in enumerate(b["choices"]):
-                    if str(choice).lstrip().startswith("*"):
-                        b["correctIndex"] = idx
-                        b["choices"][idx] = b["choices"][idx].lstrip("*").strip()
-                        break
-            b["title"] = b.get("title", "")
 
     return blocks
