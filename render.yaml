@@ -1,7 +1,9 @@
 services:
   - type: web
     name: script2slide
-    env: docker
+    env: python
     plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app -k gthread -w 2 -t 120 -b 0.0.0.0:$PORT
+    healthCheckPath: /
     autoDeploy: true
-    healthCheckPath: /healthz
